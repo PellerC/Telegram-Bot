@@ -12,6 +12,7 @@ export function helpMessage() {
     "/autosign_on - allow burner-wallet signing for approved zero-value tasks",
     "/autosign_off - disable automatic signing",
     "/sign_test - sign a harmless message to test the burner wallet",
+    "/reset_wallet_confirm - replace your burner wallet",
     "/history - show recent tasks",
     "/pause - pause active tasks",
     "/settings - show safety rules"

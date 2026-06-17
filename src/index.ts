@@ -192,6 +192,41 @@ bot.command("sign_test", async (ctx) => {
   }
 });
 
+bot.command("reset_wallet_confirm", async (ctx) => {
+  const telegramId = ctx.from?.id;
+  if (!telegramId) return;
+
+  const existingUser = await store.getUser(telegramId);
+  if (!existingUser) {
+    await ctx.reply("You need to start first: /start");
+    return;
+  }
+
+  const wallet = await createBurnerWallet();
+  const user: UserRecord = {
+    ...existingUser,
+    walletAddress: wallet.address,
+    encryptedPrivateKey: wallet.encryptedPrivateKey,
+    autoSignEnabled: false,
+    maxAutoSignValueWei: defaultAutoSignValueLimitWei,
+    updatedAt: new Date().toISOString()
+  };
+
+  await store.upsertUser(user);
+  await ctx.reply(
+    [
+      "Your burner wallet has been reset.",
+      "",
+      `New wallet: ${user.walletAddress}`,
+      "",
+      "Write this seed phrase down now. This MVP will not show it again:",
+      wallet.mnemonic,
+      "",
+      "Auto-sign is OFF. Use /sign_test first, then /autosign_on when you are ready."
+    ].join("\n")
+  );
+});
+
 bot.command("approve", async (ctx) => {
   const telegramId = ctx.from?.id;
   const taskId = ctx.match?.trim();
