@@ -27,7 +27,10 @@ export type UserRecord = {
   walletAddress: string;
   encryptedPrivateKey: string;
   riskMode: RiskMode;
+  autoSignEnabled?: boolean;
+  maxAutoSignValueWei?: string;
   createdAt: string;
+  updatedAt?: string;
 };
 
 export type TaskRecord = {

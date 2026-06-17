@@ -11,6 +11,7 @@ import {
   taskApprovedMessage,
   taskPlanMessage
 } from "./messages.js";
+import { defaultAutoSignValueLimitWei, signStatusMessage } from "./signer.js";
 import { JsonStore } from "./store.js";
 import type { TaskRecord, UserRecord } from "./types.js";
 import { simulateApprovedTask } from "./worker.js";
@@ -32,8 +33,7 @@ bot.command("start", async (ctx) => {
     return;
   }
 
-  const password = crypto.randomBytes(32).toString("hex");
-  const wallet = await createBurnerWallet(password);
+  const wallet = await createBurnerWallet();
   const user: UserRecord = {
     telegramId,
     username: ctx.from?.username,
@@ -41,6 +41,8 @@ bot.command("start", async (ctx) => {
     walletAddress: wallet.address,
     encryptedPrivateKey: wallet.encryptedPrivateKey,
     riskMode: "safe",
+    autoSignEnabled: false,
+    maxAutoSignValueWei: defaultAutoSignValueLimitWei,
     createdAt: new Date().toISOString()
   };
 
@@ -62,12 +64,34 @@ bot.command("wallet", async (ctx) => {
     return;
   }
 
-  await ctx.reply([`Wallet: ${user.walletAddress}`, `Mode: ${user.riskMode.toUpperCase()}`].join("\n"));
+  await ctx.reply(
+    [`Wallet: ${user.walletAddress}`, `Mode: ${user.riskMode.toUpperCase()}`, `Auto-sign: ${user.autoSignEnabled ? "ON" : "OFF"}`].join(
+      "\n"
+    )
+  );
 });
 
 bot.command("settings", async (ctx) => {
   await ctx.reply(settingsMessage());
 });
+
+async function createTaskPlan(telegramId: number, request: string) {
+  const parsed = await parseTaskRequest(request);
+  const now = new Date().toISOString();
+  const task: TaskRecord = {
+    id: crypto.randomBytes(4).toString("hex"),
+    telegramId,
+    request,
+    parsed,
+    status: "pending_approval",
+    logs: ["Task created and awaiting approval."],
+    createdAt: now,
+    updatedAt: now
+  };
+
+  await store.addTask(task);
+  return task;
+}
 
 bot.command("task", async (ctx) => {
   const telegramId = ctx.from?.id;
@@ -86,21 +110,86 @@ bot.command("task", async (ctx) => {
     return;
   }
 
-  const parsed = await parseTaskRequest(request);
-  const now = new Date().toISOString();
-  const task: TaskRecord = {
-    id: crypto.randomBytes(4).toString("hex"),
-    telegramId,
-    request,
-    parsed,
-    status: "pending_approval",
-    logs: ["Task created and awaiting approval."],
-    createdAt: now,
-    updatedAt: now
-  };
-
-  await store.addTask(task);
+  const task = await createTaskPlan(telegramId, request);
   await ctx.reply(taskPlanMessage(task));
+});
+
+bot.command("autosign_on", async (ctx) => {
+  const telegramId = ctx.from?.id;
+  if (!telegramId) return;
+
+  const user = await store.getUser(telegramId);
+  if (!user) {
+    await ctx.reply("You need to start first: /start");
+    return;
+  }
+
+  await store.upsertUser({
+    ...user,
+    autoSignEnabled: true,
+    maxAutoSignValueWei: user.maxAutoSignValueWei ?? defaultAutoSignValueLimitWei,
+    updatedAt: new Date().toISOString()
+  });
+
+  await ctx.reply(
+    [
+      "Auto-sign is now ON for this burner wallet.",
+      "",
+      "Current limit: 0 ETH transaction value.",
+      "It only applies to tasks you approve first. Token approvals and paid actions are still blocked by default."
+    ].join("\n")
+  );
+});
+
+bot.command("autosign_off", async (ctx) => {
+  const telegramId = ctx.from?.id;
+  if (!telegramId) return;
+
+  const user = await store.getUser(telegramId);
+  if (!user) {
+    await ctx.reply("You need to start first: /start");
+    return;
+  }
+
+  await store.upsertUser({
+    ...user,
+    autoSignEnabled: false,
+    updatedAt: new Date().toISOString()
+  });
+
+  await ctx.reply("Auto-sign is now OFF.");
+});
+
+bot.command("sign_test", async (ctx) => {
+  const telegramId = ctx.from?.id;
+  if (!telegramId) return;
+
+  const user = await store.getUser(telegramId);
+  if (!user) {
+    await ctx.reply("You need to start first: /start");
+    return;
+  }
+
+  try {
+    const result = await signStatusMessage(user);
+    await ctx.reply(
+      [
+        "Burner wallet signing works.",
+        "",
+        `Address: ${result.address}`,
+        `Message: ${result.message}`,
+        `Signature: ${result.signature}`
+      ].join("\n")
+    );
+  } catch {
+    await ctx.reply(
+      [
+        "I could not decrypt this wallet for signing.",
+        "",
+        "If this wallet was created before the auto-sign upgrade, create a fresh burner wallet after setting WALLET_ENCRYPTION_KEY on the VPS."
+      ].join("\n")
+    );
+  }
 });
 
 bot.command("approve", async (ctx) => {
@@ -160,7 +249,17 @@ bot.on("message:text", async (ctx) => {
     return;
   }
 
-  await ctx.reply("To create a task, send it like this:\n/task find low-risk airdrops for me");
+  const telegramId = ctx.from?.id;
+  if (!telegramId) return;
+
+  const user = await store.getUser(telegramId);
+  if (!user) {
+    await ctx.reply("You need to start first: /start");
+    return;
+  }
+
+  const task = await createTaskPlan(telegramId, ctx.message.text);
+  await ctx.reply(taskPlanMessage(task));
 });
 
 await store.init();

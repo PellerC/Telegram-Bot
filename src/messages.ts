@@ -9,6 +9,9 @@ export function helpMessage() {
     "/wallet - show your wallet address",
     "/task <request> - ask for an airdrop task",
     "/approve <task_id> - approve a pending task",
+    "/autosign_on - allow burner-wallet signing for approved zero-value tasks",
+    "/autosign_off - disable automatic signing",
+    "/sign_test - sign a harmless message to test the burner wallet",
     "/history - show recent tasks",
     "/pause - pause active tasks",
     "/settings - show safety rules"
@@ -26,9 +29,10 @@ export function onboardingMessage(user: UserRecord, mnemonic: string) {
     "",
     "Safety rules:",
     "- burner wallet only",
-    "- no gas spending",
-    "- no token approvals",
-    "- no contract transactions without a separate approval",
+    "- auto-sign is OFF by default",
+    "- auto-sign only applies after you approve a task",
+    "- default auto-sign limit is 0 ETH value",
+    "- no token approvals unless a later policy explicitly allows them",
     "",
     "Try: /task do my daily Sui and Galxe airdrop tasks"
   ].join("\n");
@@ -40,6 +44,7 @@ export function existingUserMessage(user: UserRecord) {
     "",
     `Wallet: ${user.walletAddress}`,
     `Mode: ${user.riskMode.toUpperCase()}`,
+    `Auto-sign: ${user.autoSignEnabled ? "ON" : "OFF"}`,
     "",
     "Try: /task find low-risk airdrops for me"
   ].join("\n");
@@ -69,6 +74,7 @@ export function taskApprovedMessage(task: TaskRecord) {
     `Approved: ${task.parsed.title}`,
     "",
     "I queued this in Safe Mode. For this MVP, execution is simulated so we can validate the chat, approval, and reporting flow first.",
+    "If auto-sign is enabled, future real workers can sign approved burner-wallet actions inside your limits.",
     "",
     `Task ID: ${task.id}`
   ].join("\n");
@@ -94,9 +100,10 @@ export function settingsMessage() {
     "",
     "Safe Mode rules:",
     "- no gas spending",
-    "- no token approvals",
-    "- no paid tasks",
+    "- no token approvals by default",
+    "- no paid tasks by default",
     "- no unknown contract interactions",
+    "- auto-sign is optional and only for approved tasks",
     "- explain before action, approve before execution"
   ].join("\n");
 }
