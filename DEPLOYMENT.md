@@ -4,6 +4,7 @@ This bot is a long-running Telegram polling process. The simplest production set
 
 - Ubuntu VPS
 - Node.js 22+
+- PostgreSQL for public users
 - PM2 process manager
 - `.env` file on the server
 
@@ -20,7 +21,34 @@ npm -v
 pm2 -v
 ```
 
-## 2. Clone The Repository
+## 2. Install PostgreSQL
+
+Use PostgreSQL for the public bot. This keeps each user's wallet, task history, approvals, and settings separate.
+
+```bash
+sudo apt install -y postgresql postgresql-contrib
+sudo systemctl enable postgresql
+sudo systemctl start postgresql
+```
+
+Create a database and user:
+
+```bash
+sudo -u postgres psql
+```
+
+Inside the PostgreSQL prompt, run:
+
+```sql
+create database airdrop_bot;
+create user airdrop_bot with encrypted password 'CHANGE_THIS_PASSWORD';
+grant all privileges on database airdrop_bot to airdrop_bot;
+\c airdrop_bot
+grant all on schema public to airdrop_bot;
+\q
+```
+
+## 3. Clone The Repository
 
 ```bash
 sudo mkdir -p /var/www
@@ -31,7 +59,7 @@ cd Telegram-Bot
 npm install
 ```
 
-## 3. Configure Environment Variables
+## 4. Configure Environment Variables
 
 ```bash
 cp .env.example .env
@@ -42,7 +70,8 @@ Required:
 
 ```env
 TELEGRAM_BOT_TOKEN=your_botfather_token
-DATA_FILE=.data/bot-store.json
+WALLET_ENCRYPTION_KEY=generate_with_openssl_rand_hex_32
+DATABASE_URL=postgresql://airdrop_bot:CHANGE_THIS_PASSWORD@localhost:5432/airdrop_bot
 ```
 
 Optional:
@@ -52,7 +81,13 @@ OPENAI_API_KEY=your_openai_api_key
 OPENAI_MODEL=gpt-4.1-mini
 ```
 
-## 4. Test Before Running In Background
+Generate `WALLET_ENCRYPTION_KEY` with:
+
+```bash
+openssl rand -hex 32
+```
+
+## 5. Test Before Running In Background
 
 ```bash
 npm run build
@@ -61,7 +96,7 @@ npm start
 
 Open Telegram and send `/start` to the bot. If it works, stop the process with `CTRL + C`.
 
-## 5. Run With PM2
+## 6. Run With PM2
 
 ```bash
 pm2 start npm --name airdrop-bot -- start
@@ -80,7 +115,7 @@ pm2 restart airdrop-bot
 pm2 stop airdrop-bot
 ```
 
-## 6. Update The Bot Later
+## 7. Update The Bot Later
 
 ```bash
 cd /var/www/Telegram-Bot

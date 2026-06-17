@@ -12,13 +12,13 @@ import {
   taskPlanMessage
 } from "./messages.js";
 import { defaultAutoSignValueLimitWei, signStatusMessage } from "./signer.js";
-import { JsonStore } from "./store.js";
+import { createStore } from "./store.js";
 import type { TaskRecord, UserRecord } from "./types.js";
 import { simulateApprovedTask } from "./worker.js";
 import { createBurnerWallet } from "./wallet.js";
 
 const bot = new Bot(config.telegramBotToken);
-const store = new JsonStore(config.dataFile);
+const store = createStore();
 
 bot.command("start", async (ctx) => {
   const telegramId = ctx.from?.id;

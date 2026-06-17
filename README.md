@@ -37,3 +37,13 @@ This first version is Safe Mode only:
 - tasks are planned and approved before execution
 
 The current worker simulates execution. Real campaign automation should be added target-by-target with strict policy checks.
+
+## Public Bot Storage
+
+For local testing, the bot uses `DATA_FILE`.
+
+For a public bot, set `DATABASE_URL` so every user's wallet, task approvals, settings, and history are stored in PostgreSQL.
+
+```env
+DATABASE_URL=postgresql://airdrop_bot:password@localhost:5432/airdrop_bot
+```

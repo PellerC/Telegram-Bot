@@ -1,7 +1,7 @@
-import type { JsonStore } from "./store.js";
+import type { Store } from "./store.js";
 import type { TaskRecord } from "./types.js";
 
-export async function simulateApprovedTask(store: JsonStore, task: TaskRecord) {
+export async function simulateApprovedTask(store: Store, task: TaskRecord) {
   const now = new Date().toISOString();
 
   const runningTask: TaskRecord = {
