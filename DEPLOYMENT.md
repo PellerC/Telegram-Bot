@@ -77,8 +77,10 @@ DATABASE_URL=postgresql://airdrop_bot:CHANGE_THIS_PASSWORD@localhost:5432/airdro
 Optional:
 
 ```env
-OPENAI_API_KEY=your_openai_api_key
-OPENAI_MODEL=gpt-4.1-mini
+AI_PROVIDER=deepseek
+DEEPSEEK_API_KEY=your_deepseek_api_key
+DEEPSEEK_MODEL=deepseek-v4-flash
+DEEPSEEK_BASE_URL=https://api.deepseek.com
 ```
 
 Generate `WALLET_ENCRYPTION_KEY` with:

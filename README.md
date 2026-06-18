@@ -7,7 +7,7 @@ Telegram-first MVP for an AI airdrop assistant. The bot supports onboarding, saf
 1. Create a Telegram bot with BotFather and copy the token.
 2. Copy `.env.example` to `.env`.
 3. Fill `TELEGRAM_BOT_TOKEN`.
-4. Optionally fill `OPENAI_API_KEY` for AI parsing.
+4. Fill `DEEPSEEK_API_KEY` for AI replies and task parsing.
 5. Install dependencies and run:
 
 ```bash
@@ -64,6 +64,25 @@ The AI can choose controlled actions:
 - pause tasks
 
 The AI chooses the action, but backend code enforces permissions and safety rules.
+
+## AI Provider
+
+DeepSeek is the default provider because its API is OpenAI-compatible and can be cheaper for high-volume Telegram chats.
+
+```env
+AI_PROVIDER=deepseek
+DEEPSEEK_API_KEY=your_deepseek_key
+DEEPSEEK_MODEL=deepseek-v4-flash
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+```
+
+To switch back to OpenAI:
+
+```env
+AI_PROVIDER=openai
+OPENAI_API_KEY=your_openai_key
+OPENAI_MODEL=gpt-4.1-mini
+```
 
 ## Public Bot Storage
 

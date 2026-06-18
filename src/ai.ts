@@ -1,6 +1,5 @@
-import OpenAI from "openai";
 import { z } from "zod";
-import { config } from "./config.js";
+import { createLlmClient, getChatModel } from "./llm.js";
 import type { ParsedTask } from "./types.js";
 
 const parsedTaskSchema = z.object({
@@ -20,19 +19,15 @@ const parsedTaskSchema = z.object({
   riskNotes: z.array(z.string()).default([])
 });
 
-const openai = config.openAiApiKey
-  ? new OpenAI({
-      apiKey: config.openAiApiKey
-    })
-  : undefined;
+const llm = createLlmClient();
 
 export async function parseTaskRequest(request: string): Promise<ParsedTask> {
-  if (!openai) {
+  if (!llm) {
     return fallbackParse(request);
   }
 
-  const response = await openai.chat.completions.create({
-    model: config.openAiModel,
+  const response = await llm.chat.completions.create({
+    model: getChatModel(),
     temperature: 0.2,
     response_format: { type: "json_object" },
     messages: [
@@ -53,12 +48,25 @@ export async function parseTaskRequest(request: string): Promise<ParsedTask> {
     return fallbackParse(request);
   }
 
-  const parsed = parsedTaskSchema.safeParse(JSON.parse(content));
+  const parsedJson = safeJsonParse(content);
+  if (!parsedJson) {
+    return fallbackParse(request);
+  }
+
+  const parsed = parsedTaskSchema.safeParse(parsedJson);
   if (!parsed.success) {
     return fallbackParse(request);
   }
 
   return parsed.data;
+}
+
+function safeJsonParse(content: string) {
+  try {
+    return JSON.parse(content);
+  } catch {
+    return undefined;
+  }
 }
 
 function fallbackParse(request: string): ParsedTask {

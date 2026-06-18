@@ -1,6 +1,6 @@
-import OpenAI from "openai";
 import { z } from "zod";
 import { config } from "./config.js";
+import { createLlmClient, getChatModel } from "./llm.js";
 import type { AgentReply, TaskRecord, UserRecord } from "./types.js";
 
 const agentReplySchema = z.object({
@@ -11,11 +11,7 @@ const agentReplySchema = z.object({
   memoryPatch: z.string().optional()
 });
 
-const openai = config.openAiApiKey
-  ? new OpenAI({
-      apiKey: config.openAiApiKey
-    })
-  : undefined;
+const llm = createLlmClient();
 
 export async function getAgentReply(user: UserRecord, recentTasks: TaskRecord[], message: string): Promise<AgentReply> {
   if (config.agentWebhookUrl) {
@@ -23,7 +19,7 @@ export async function getAgentReply(user: UserRecord, recentTasks: TaskRecord[],
     if (reply) return reply;
   }
 
-  if (openai) {
+  if (llm) {
     const reply = await callOpenAiAgent(user, recentTasks, message);
     if (reply) return reply;
   }
@@ -62,8 +58,8 @@ async function callAgentWebhook(user: UserRecord, recentTasks: TaskRecord[], mes
 }
 
 async function callOpenAiAgent(user: UserRecord, recentTasks: TaskRecord[], message: string): Promise<AgentReply | undefined> {
-  const response = await openai!.chat.completions.create({
-    model: config.openAiModel,
+  const response = await llm!.chat.completions.create({
+    model: getChatModel(),
     temperature: 0.5,
     response_format: { type: "json_object" },
     messages: [
@@ -111,8 +107,19 @@ async function callOpenAiAgent(user: UserRecord, recentTasks: TaskRecord[], mess
   const content = response.choices[0]?.message.content;
   if (!content) return undefined;
 
-  const parsed = agentReplySchema.safeParse(JSON.parse(content));
+  const parsedJson = safeJsonParse(content);
+  if (!parsedJson) return undefined;
+
+  const parsed = agentReplySchema.safeParse(parsedJson);
   return parsed.success ? parsed.data : undefined;
+}
+
+function safeJsonParse(content: string) {
+  try {
+    return JSON.parse(content);
+  } catch {
+    return undefined;
+  }
 }
 
 function fallbackAgentReply(message: string): AgentReply {
