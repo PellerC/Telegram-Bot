@@ -104,8 +104,8 @@ export function taskApprovedMessage(task: TaskRecord) {
   return [
     `Approved: ${task.parsed.title}`,
     "",
-    "I queued this in Safe Mode. For this MVP, execution is simulated so we can validate the chat, approval, and reporting flow first.",
-    "If auto-sign is enabled, future real workers can sign approved burner-wallet actions inside your limits.",
+    "I queued this task. A real worker still needs to be connected for this platform before I can open the site, accept wallet prompts, or submit transactions.",
+    "I will not mark it completed until a worker actually runs it.",
     "",
     `Task ID: ${task.id}`
   ].join("\n");

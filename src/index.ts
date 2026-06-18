@@ -17,7 +17,6 @@ import {
 import { defaultAutoSignValueLimitWei, signStatusMessage } from "./signer.js";
 import { createStore } from "./store.js";
 import type { TaskRecord, UserRecord } from "./types.js";
-import { simulateApprovedTask } from "./worker.js";
 import { createBurnerWallet } from "./wallet.js";
 
 const bot = new Bot(config.telegramBotToken);
@@ -347,9 +346,6 @@ bot.command("approve", async (ctx) => {
   };
   await store.updateTask(approvedTask);
   await ctx.reply(taskApprovedMessage(approvedTask));
-
-  const completedTask = await simulateApprovedTask(store, approvedTask);
-  await ctx.reply([`Completed: ${completedTask.parsed.title}`, "", completedTask.logs.at(-1)].join("\n"));
 });
 
 bot.command("history", async (ctx) => {
