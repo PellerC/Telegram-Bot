@@ -8,6 +8,8 @@ import {
   helpMessage,
   historyMessage,
   onboardingMessage,
+  profileMessage,
+  defaultMemoryMarkdown,
   settingsMessage,
   taskApprovedMessage,
   taskPlanMessage
@@ -42,6 +44,15 @@ bot.command("start", async (ctx) => {
     walletAddress: wallet.address,
     encryptedPrivateKey: wallet.encryptedPrivateKey,
     riskMode: "safe",
+    memoryMarkdown: defaultMemoryMarkdown({
+      telegramId,
+      username: ctx.from?.username,
+      firstName: ctx.from?.first_name,
+      walletAddress: wallet.address,
+      encryptedPrivateKey: wallet.encryptedPrivateKey,
+      riskMode: "safe",
+      createdAt: new Date().toISOString()
+    }),
     autoSignEnabled: false,
     maxAutoSignValueWei: defaultAutoSignValueLimitWei,
     createdAt: new Date().toISOString()
@@ -72,6 +83,40 @@ bot.command("wallet", async (ctx) => {
   );
 });
 
+bot.command("profile", async (ctx) => {
+  const telegramId = ctx.from?.id;
+  if (!telegramId) return;
+
+  const user = await store.getUser(telegramId);
+  if (!user) {
+    await ctx.reply("You need to start first: /start");
+    return;
+  }
+
+  await ctx.reply(profileMessage(user));
+});
+
+bot.command("remember", async (ctx) => {
+  const telegramId = ctx.from?.id;
+  const preference = ctx.match?.trim();
+
+  if (!telegramId) return;
+
+  const user = await store.getUser(telegramId);
+  if (!user) {
+    await ctx.reply("You need to start first: /start");
+    return;
+  }
+
+  if (!preference) {
+    await ctx.reply("Tell me what to remember, like: /remember I prefer Sui and Base airdrops");
+    return;
+  }
+
+  await rememberForUser(user, `- ${preference}`);
+  await ctx.reply("Saved. I will use that when planning your future tasks.");
+});
+
 bot.command("settings", async (ctx) => {
   await ctx.reply(settingsMessage());
 });
@@ -92,6 +137,50 @@ async function createTaskPlan(telegramId: number, request: string) {
 
   await store.addTask(task);
   return task;
+}
+
+async function rememberForUser(user: UserRecord, memoryPatch: string) {
+  const currentMemory = user.memoryMarkdown || defaultMemoryMarkdown(user);
+  const nextMemory = [currentMemory, "", "## Saved From Chat", memoryPatch].join("\n");
+
+  await store.upsertUser({
+    ...user,
+    memoryMarkdown: nextMemory.slice(-6000),
+    updatedAt: new Date().toISOString()
+  });
+}
+
+async function runAgentAction(user: UserRecord, message: string) {
+  const recentTasks = await store.getTasksForUser(user.telegramId, 5);
+  const agentReply = await getAgentReply(user, recentTasks, message);
+
+  switch (agentReply.action) {
+    case "create_task": {
+      const task = await createTaskPlan(user.telegramId, message);
+      return [agentReply.reply, taskPlanMessage(task)].join("\n\n");
+    }
+    case "show_history":
+      return [agentReply.reply, "", historyMessage(recentTasks)].join("\n");
+    case "show_wallet":
+      return [
+        agentReply.reply,
+        "",
+        `Wallet: ${user.walletAddress}`,
+        `Mode: ${user.riskMode.toUpperCase()}`,
+        `Auto-sign: ${user.autoSignEnabled ? "ON" : "OFF"}`
+      ].join("\n");
+    case "pause_tasks":
+      await store.pauseUserTasks(user.telegramId);
+      return `${agentReply.reply}\n\nPaused all active and pending tasks.`;
+    case "show_settings":
+      return [agentReply.reply, "", settingsMessage()].join("\n");
+    case "remember":
+      await rememberForUser(user, agentReply.memoryPatch || `- ${message}`);
+      return agentReply.reply;
+    case "answer":
+    default:
+      return agentReply.reply;
+  }
 }
 
 bot.command("task", async (ctx) => {
@@ -294,13 +383,8 @@ bot.on("message:text", async (ctx) => {
     return;
   }
 
-  const agentReply = await getAgentReply(user, ctx.message.text);
-  await ctx.reply(agentReply.reply);
-
-  if (agentReply.shouldCreateTask) {
-    const task = await createTaskPlan(telegramId, ctx.message.text);
-    await ctx.reply(taskPlanMessage(task));
-  }
+  const reply = await runAgentAction(user, ctx.message.text);
+  await ctx.reply(reply);
 });
 
 await store.init();

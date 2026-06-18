@@ -123,6 +123,7 @@ type UserRow = {
   wallet_address: string;
   encrypted_private_key: string;
   risk_mode: UserRecord["riskMode"];
+  memory_markdown?: string;
   auto_sign_enabled: boolean;
   max_auto_sign_value_wei: string;
   created_at: Date;
@@ -158,12 +159,15 @@ export class PostgresStore implements Store {
         wallet_address text not null,
         encrypted_private_key text not null,
         risk_mode text not null default 'safe',
+        memory_markdown text,
         auto_sign_enabled boolean not null default false,
         max_auto_sign_value_wei text not null default '0',
         created_at timestamptz not null default now(),
         updated_at timestamptz
       )
     `);
+
+    await this.pool.query("alter table users add column if not exists memory_markdown text");
 
     await this.pool.query(`
       create table if not exists tasks (
@@ -192,15 +196,16 @@ export class PostgresStore implements Store {
       `
         insert into users (
           telegram_id, username, first_name, wallet_address, encrypted_private_key,
-          risk_mode, auto_sign_enabled, max_auto_sign_value_wei, created_at, updated_at
+          risk_mode, memory_markdown, auto_sign_enabled, max_auto_sign_value_wei, created_at, updated_at
         )
-        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         on conflict (telegram_id) do update set
           username = excluded.username,
           first_name = excluded.first_name,
           wallet_address = excluded.wallet_address,
           encrypted_private_key = excluded.encrypted_private_key,
           risk_mode = excluded.risk_mode,
+          memory_markdown = excluded.memory_markdown,
           auto_sign_enabled = excluded.auto_sign_enabled,
           max_auto_sign_value_wei = excluded.max_auto_sign_value_wei,
           updated_at = excluded.updated_at
@@ -212,6 +217,7 @@ export class PostgresStore implements Store {
         user.walletAddress,
         user.encryptedPrivateKey,
         user.riskMode,
+        user.memoryMarkdown,
         user.autoSignEnabled ?? false,
         user.maxAutoSignValueWei ?? "0",
         user.createdAt,
@@ -280,6 +286,7 @@ export class PostgresStore implements Store {
       walletAddress: row.wallet_address,
       encryptedPrivateKey: row.encrypted_private_key,
       riskMode: row.risk_mode,
+      memoryMarkdown: row.memory_markdown,
       autoSignEnabled: row.auto_sign_enabled,
       maxAutoSignValueWei: row.max_auto_sign_value_wei,
       createdAt: row.created_at.toISOString(),

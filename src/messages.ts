@@ -7,6 +7,8 @@ export function helpMessage() {
     "Commands:",
     "/start - set up your Safe Mode burner wallet",
     "/wallet - show your wallet address",
+    "/profile - show what your mini-agent remembers",
+    "/remember <preference> - add a preference to your mini-agent profile",
     "/task <request> - ask for an airdrop task",
     "/approve <task_id> - approve a pending task",
     "/autosign_on - allow burner-wallet signing for approved zero-value tasks",
@@ -36,6 +38,34 @@ export function onboardingMessage(user: UserRecord, mnemonic: string) {
     "- no token approvals unless a later policy explicitly allows them",
     "",
     "Now just tell me what you want to do, like: claim faucets for me or find low-risk airdrops."
+  ].join("\n");
+}
+
+export function defaultMemoryMarkdown(user: UserRecord) {
+  return [
+    `# User ${user.username ? `@${user.username}` : user.telegramId}`,
+    "",
+    "## Preferences",
+    "- Risk mode: Safe",
+    "- Prefer low-cost or free airdrop tasks",
+    "- Avoid paid tasks unless the user clearly approves",
+    "- Ask before signatures, token approvals, or spending gas",
+    "",
+    "## Goals",
+    "- Discover useful airdrop opportunities",
+    "- Turn casual Telegram messages into clear task plans",
+    "- Keep task updates short and understandable",
+    "",
+    "## Notes",
+    "- No extra preferences saved yet"
+  ].join("\n");
+}
+
+export function profileMessage(user: UserRecord) {
+  return [
+    "Here is what your mini-agent remembers:",
+    "",
+    user.memoryMarkdown || defaultMemoryMarkdown(user)
   ].join("\n");
 }
 

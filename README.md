@@ -19,6 +19,8 @@ npm run dev
 
 - `/start` - onboard and create a Safe Mode burner wallet
 - `/wallet` - show wallet address
+- `/profile` - show the user's mini-agent memory
+- `/remember <preference>` - save a preference to the user's mini-agent memory
 - `/task <request>` - describe an airdrop task in normal language
 - `/approve <task_id>` - approve a pending task for automation
 - `/history` - show recent task activity
@@ -37,6 +39,31 @@ This first version is Safe Mode only:
 - tasks are planned and approved before execution
 
 The current worker simulates execution. Real campaign automation should be added target-by-target with strict policy checks.
+
+## Mini-Agent Model
+
+The bot uses one shared AI engine, but every Telegram user gets their own mini-agent profile:
+
+- burner wallet
+- risk mode
+- auto-sign setting
+- markdown memory profile
+- recent task history
+- saved preferences
+
+This gives each user a personal-agent experience without running a separate process for every user.
+
+The AI can choose controlled actions:
+
+- answer a question
+- remember a preference
+- create a task plan
+- show wallet
+- show history
+- show settings
+- pause tasks
+
+The AI chooses the action, but backend code enforces permissions and safety rules.
 
 ## Public Bot Storage
 

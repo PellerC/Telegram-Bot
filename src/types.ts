@@ -27,6 +27,7 @@ export type UserRecord = {
   walletAddress: string;
   encryptedPrivateKey: string;
   riskMode: RiskMode;
+  memoryMarkdown?: string;
   autoSignEnabled?: boolean;
   maxAutoSignValueWei?: string;
   createdAt: string;
@@ -51,5 +52,6 @@ export type StoreShape = {
 
 export type AgentReply = {
   reply: string;
-  shouldCreateTask: boolean;
+  action: "answer" | "create_task" | "show_history" | "show_wallet" | "pause_tasks" | "show_settings" | "remember";
+  memoryPatch?: string;
 };
