@@ -35,7 +35,7 @@ export function onboardingMessage(user: UserRecord, mnemonic: string) {
     "- default auto-sign limit is 0 ETH value",
     "- no token approvals unless a later policy explicitly allows them",
     "",
-    "Try: /task do my daily Sui and Galxe airdrop tasks"
+    "Now just tell me what you want to do, like: claim faucets for me or find low-risk airdrops."
   ].join("\n");
 }
 
@@ -47,26 +47,26 @@ export function existingUserMessage(user: UserRecord) {
     `Mode: ${user.riskMode.toUpperCase()}`,
     `Auto-sign: ${user.autoSignEnabled ? "ON" : "OFF"}`,
     "",
-    "Try: /task find low-risk airdrops for me"
+    "Tell me what you want to farm, claim, check, or understand."
   ].join("\n");
 }
 
 export function taskPlanMessage(task: TaskRecord) {
   return [
-    `Task plan: ${task.parsed.title}`,
+    `I can help with this: ${task.parsed.title}`,
     "",
     task.parsed.summary,
     "",
-    `Frequency: ${task.parsed.frequency}`,
-    `Targets: ${task.parsed.targets.length ? task.parsed.targets.join(", ") : "not specified"}`,
+    `How often: ${task.parsed.frequency}`,
+    `Where: ${task.parsed.targets.length ? task.parsed.targets.join(", ") : "I need you to name the chain or platform"}`,
     "",
-    "Permissions needed:",
+    "What I need permission to do:",
     ...task.parsed.permissions.map((permission) => `- ${permission}`),
     "",
-    "Risk notes:",
+    "Safety limits:",
     ...task.parsed.riskNotes.map((note) => `- ${note}`),
     "",
-    `Approve with: /approve ${task.id}`
+    `If this looks right, approve it with: /approve ${task.id}`
   ].join("\n");
 }
 

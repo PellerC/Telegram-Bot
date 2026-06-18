@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { Bot } from "grammy";
+import { getAgentReply } from "./agent.js";
 import { config } from "./config.js";
 import { parseTaskRequest } from "./ai.js";
 import {
@@ -293,8 +294,13 @@ bot.on("message:text", async (ctx) => {
     return;
   }
 
-  const task = await createTaskPlan(telegramId, ctx.message.text);
-  await ctx.reply(taskPlanMessage(task));
+  const agentReply = await getAgentReply(user, ctx.message.text);
+  await ctx.reply(agentReply.reply);
+
+  if (agentReply.shouldCreateTask) {
+    const task = await createTaskPlan(telegramId, ctx.message.text);
+    await ctx.reply(taskPlanMessage(task));
+  }
 });
 
 await store.init();

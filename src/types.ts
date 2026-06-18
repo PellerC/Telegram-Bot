@@ -48,3 +48,8 @@ export type StoreShape = {
   users: UserRecord[];
   tasks: TaskRecord[];
 };
+
+export type AgentReply = {
+  reply: string;
+  shouldCreateTask: boolean;
+};
